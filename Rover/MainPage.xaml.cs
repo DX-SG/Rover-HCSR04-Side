@@ -16,24 +16,14 @@ namespace Rover
     /// </summary>
     public sealed partial class MainPage : Page
     {
-        //running some task on different thread
+
         private BackgroundWorker _worker;
         private CoreDispatcher _dispatcher;
 
         //this is a flag to stop the robot when the application is closed.
         private bool _finish;
-
-        //these are 2 variables to store the left and right distance
-        private double distanceleft = 0;
+        private double distance = 0;
         private double distanceright = 0;
-
-        //variables to store average values of readings from ultrasonic sensors
-        double xLeft = 0.0;
-        double xRight = 0.0;
-
-        //ultrasonic sensors
-        UltrasonicDistanceSensor ultrasonicDistanceSensorLeft = null;
-        UltrasonicDistanceSensor ultrasonicDistanceSensorRight = null;
 
         //this is the 1st starting point.
         public MainPage()
@@ -45,7 +35,7 @@ namespace Rover
             Unloaded += MainPage_Unloaded;
         }
 
-        //when the UI is loaded
+        //this is the 2nd starting point
         private async void MainPage_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
         {
             //dispatcher is another thread to update the UI, you will not need to touch this
@@ -70,27 +60,22 @@ namespace Rover
 
         }
 
+        double xLeft = 0.0;
+        double xRight = 0.0;
+        UltrasonicDistanceSensor ultrasonicDistanceSensor = null;
+        UltrasonicDistanceSensor ultrasonicDistanceSensorright = null;
 
-        /// <summary>
-        /// For the entire challenge, it is pretty safe to say you only need to change the algorithm in this method
-        /// If you would like to venture outside of this method, by all means :)
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private async void DoWork(object sender, DoWorkEventArgs e)
         {
-            //instantiate the Motor and Ultrasonic sensors. You will not need to change the GPIO pin numbers below. 
+            //instantiate the Motor and Ultrasonic sensors. You will not need to change the numbers below. 
             //The numbers below are GPIO pins which the Raspberry Pi uses to control the motor and sensors
+
+            //dreamtcs
             var driver = new TwoMotorsDriver(new Motor(27, 22), new Motor(5, 6));
 
-            ultrasonicDistanceSensorRight = new UltrasonicDistanceSensor(23, 24);
-            ultrasonicDistanceSensorLeft = new UltrasonicDistanceSensor(21, 20);
-
-
-            #region as a recommendation, you may wish to start editing the region from below
-
-            //number of milliseconds to turn
-            int turning = 200;
+            ultrasonicDistanceSensorright = new UltrasonicDistanceSensor(23, 24);
+            ultrasonicDistanceSensor = new UltrasonicDistanceSensor(21, 20);
+            int turning = 50;
 
             //while (true)
             //{
@@ -101,20 +86,15 @@ namespace Rover
             //}
 
             driver.MoveForward();
+            double x = await ultrasonicDistanceSensor.GetDistanceInCmAsync(1000);
+            double y = await ultrasonicDistanceSensorright.GetDistanceInCmAsync(1000);
 
-            //get the readings from the ultrasonic sensors. you might want to optimize this as they are reading in "sequential"
-            double x = await ultrasonicDistanceSensorLeft.GetDistanceInCmAsync(1000);
-            double y = await ultrasonicDistanceSensorRight.GetDistanceInCmAsync(1000);
-
-            //infinite looping
             while (true)
             {
-                //too close to left
                 if (x < 20)
                 {
                     await driver.TurnRightAsync(turning);
                 }
-                //too close to right
                 else if (y < 20)
                 {
                     await driver.TurnLeftAsync(turning);
@@ -122,11 +102,12 @@ namespace Rover
                 else
                 {
                     driver.MoveForward();
+                    await Task.Delay(500);
+                    driver.Stop();
                 }
 
-                //get the readings from the ultrasonic sensors. you might want to optimize this as they are reading in "sequential"
-                x = await ultrasonicDistanceSensorLeft.GetDistanceInCmAsync(1000);
-                y = await ultrasonicDistanceSensorRight.GetDistanceInCmAsync(1000);
+                x = await ultrasonicDistanceSensor.GetDistanceInCmAsync(1000);
+                y = await ultrasonicDistanceSensorright.GetDistanceInCmAsync(1000);
              
                 await WriteLog(x + " : " + y);
             }
@@ -190,8 +171,6 @@ namespace Rover
 
         }
 
-        //currently unused method, this is useful when sensors give an outlier reading
-        //these outlier readings are common for low cost sensors
         private async void avg()
         {
             int count = 5;
@@ -201,7 +180,7 @@ namespace Rover
                 double temp = 0.0;
                 while (temp == 0.0)
                 {
-                    temp = await ultrasonicDistanceSensorLeft.GetDistanceInCmAsync(1000);
+                    temp = await ultrasonicDistanceSensor.GetDistanceInCmAsync(1000);
                     await Task.Delay(1000);
                 }
                 xLeft += temp;
@@ -214,7 +193,7 @@ namespace Rover
                 double temp = 0.0;
                 while (temp == 0.0)
                 {
-                    temp = await ultrasonicDistanceSensorRight.GetDistanceInCmAsync(1000);
+                    temp = await ultrasonicDistanceSensorright.GetDistanceInCmAsync(1000);
                     await Task.Delay(1000);
                 }
                 xRight += temp;
@@ -222,8 +201,6 @@ namespace Rover
             xRight = xRight / count;
             await WriteLog(xLeft + " : " + xRight);
         }
-
-        //display log onto UI
         private async Task WriteLog(string text)
         {
             try
