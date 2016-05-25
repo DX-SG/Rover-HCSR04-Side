@@ -69,21 +69,14 @@ namespace Rover
         {
             //instantiate the Motor and Ultrasonic sensors. You will not need to change the numbers below. 
             //The numbers below are GPIO pins which the Raspberry Pi uses to control the motor and sensors
-
-            //dreamtcs
             var driver = new TwoMotorsDriver(new Motor(27, 22), new Motor(5, 6));
-
             ultrasonicDistanceSensorright = new UltrasonicDistanceSensor(23, 24);
             ultrasonicDistanceSensor = new UltrasonicDistanceSensor(21, 20);
-            int turning = 50;
 
-            //while (true)
-            //{
-            //    await Task.Delay(1000);
-            //    double xLeft = await ultrasonicDistanceSensor.GetDistanceInCmAsync(1000);
-            //    double xRight = await ultrasonicDistanceSensorright.GetDistanceInCmAsync(1000);
-            //    await WriteLog(xLeft + " : " + xRight);
-            //}
+            //set turning to 50milliseconds.
+            int turning = 50;
+            //set safety distance as 20
+            int safetymargin = 20;
 
             driver.MoveForward();
             double x = await ultrasonicDistanceSensor.GetDistanceInCmAsync(1000);
@@ -91,11 +84,11 @@ namespace Rover
 
             while (true)
             {
-                if (x < 20)
+                if (x < safetymargin)
                 {
                     await driver.TurnRightAsync(turning);
                 }
-                else if (y < 20)
+                else if (y < safetymargin)
                 {
                     await driver.TurnLeftAsync(turning);
                 }
@@ -108,67 +101,9 @@ namespace Rover
 
                 x = await ultrasonicDistanceSensor.GetDistanceInCmAsync(1000);
                 y = await ultrasonicDistanceSensorright.GetDistanceInCmAsync(1000);
-             
+
                 await WriteLog(x + " : " + y);
             }
-                
-
-
-            //avg();
-        
-            //while (true)
-            //{
-            //    await WriteLog(xLeft + " : " + xRight);
-            //    if (xLeft < xRight)
-            //    {
-            //        double xRightNow = 0.0;
-            //        //facing lhs
-            //        while (xRight - xRightNow > 0)
-            //        {
-            //            if (xRightNow != 0)
-            //                xRight = xRightNow;
-            //            await driver.TurnRightAsync(turning);
-            //            await Task.Delay(500);
-            //            double temp = 0.0;
-            //            while (temp == 0.0)
-            //            {
-            //                temp = await ultrasonicDistanceSensorright.GetDistanceInCmAsync(1000);
-            //            }
-            //            xRightNow = temp;
-            //            await WriteLog(xRight + " : " + xRightNow);
-            //        }
-            //        //await driver.TurnLeftAsync(turning);
-            //    }
-            //    else
-            //    {
-            //        //facing rhs
-            //        double xLeftNow = 0.0;
-            //        //facing lhs
-            //        while (xLeft - xLeftNow > 0)
-            //        {
-            //            if (xLeftNow != 0)
-            //                xLeft = xLeftNow;
-            //            await driver.TurnLeftAsync(turning);
-            //            await Task.Delay(500);
-            //            double temp = 0.0;
-            //            while (temp == 0.0)
-            //            {
-            //                temp = await ultrasonicDistanceSensor.GetDistanceInCmAsync(1000);
-            //            }
-            //            xLeftNow = temp;
-            //            await WriteLog(xLeft + " : " + xLeftNow);
-            //        }
-            //        //await driver.TurnRightAsync(turning);
-            //    }
-
-            //    driver.MoveForward();
-            //    await Task.Delay(500);
-            //    driver.Stop();
-            //    await Task.Delay(3000);
-
-            //    avg();
-            //}
-
         }
 
         private async void avg()
@@ -201,6 +136,7 @@ namespace Rover
             xRight = xRight / count;
             await WriteLog(xLeft + " : " + xRight);
         }
+
         private async Task WriteLog(string text)
         {
             try
